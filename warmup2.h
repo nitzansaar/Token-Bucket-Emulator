@@ -27,6 +27,9 @@ typedef struct Packet {
     struct timeval t_enter_q1;
     struct timeval t_leave_q1;
     struct timeval t_enter_q2;
+    struct timeval t_leave_q2;
+    struct timeval t_begin_svc;
+    struct timeval t_depart;
 } Packet;
 
 typedef struct Shared {
@@ -41,6 +44,11 @@ typedef struct Shared {
     int token_count;
     int no_more_packets;
 } Shared;
+
+typedef struct ServerArg {
+    Shared *shared;
+    int id;
+} ServerArg;
 
 int ParseArgs(int argc, char **argv, Args *args);
 void PrintParams(const Args *args);
@@ -60,8 +68,10 @@ int TimeTokenIntervalUsec(double r);
 
 const char *TokenWord(int n);
 int TryMoveHeadQ1ToQ2(Shared *s);
+int AllDone(Shared *s);
 
 void *Arrival(void *arg);
 void *Token(void *arg);
+void *Server(void *arg);
 
 #endif /* _WARMUP2_H_ */

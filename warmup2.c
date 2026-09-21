@@ -45,11 +45,22 @@ int TryMoveHeadQ1ToQ2(Shared *s)
     return 1;
 }
 
+int AllDone(Shared *s)
+{
+    return (s->no_more_packets &&
+            My402ListEmpty(&s->Q1) &&
+            My402ListEmpty(&s->Q2));
+}
+
 int main(int argc, char **argv)
 {
     Shared shared;
     pthread_t arrival_thr;
     pthread_t token_thr;
+    pthread_t s1_thr;
+    pthread_t s2_thr;
+    ServerArg s1_arg;
+    ServerArg s2_arg;
     struct timeval t_end;
 
     ParseArgs(argc, argv, &shared.args);
@@ -83,17 +94,24 @@ int main(int argc, char **argv)
         perror("pthread_create");
         exit(1);
     }
+    s1_arg.shared = &shared;
+    s1_arg.id = 1;
+    s2_arg.shared = &shared;
+    s2_arg.id = 2;
+    if (pthread_create(&s1_thr, NULL, Server, &s1_arg) != 0) {
+        perror("pthread_create");
+        exit(1);
+    }
+    if (pthread_create(&s2_thr, NULL, Server, &s2_arg) != 0) {
+        perror("pthread_create");
+        exit(1);
+    }
     pthread_join(arrival_thr, NULL);
     pthread_join(token_thr, NULL);
+    pthread_join(s1_thr, NULL);
+    pthread_join(s2_thr, NULL);
 
     pthread_mutex_lock(&shared.mutex);
-    /* M5-will-replace */
-    while (!My402ListEmpty(&shared.Q2)) {
-        My402ListElem *elem = My402ListFirst(&shared.Q2);
-        Packet *p = (Packet *)elem->obj;
-        My402ListUnlink(&shared.Q2, elem);
-        free(p);
-    }
     TimeNow(&t_end);
     TimePrintEvent(&shared.t0, &t_end, "emulation ends");
     pthread_mutex_unlock(&shared.mutex);
