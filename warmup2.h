@@ -32,6 +32,20 @@ typedef struct Packet {
     struct timeval t_depart;
 } Packet;
 
+typedef struct Stats {
+    int dropped_packets;
+    int dropped_tokens;
+    int completed;
+    double sum_ia;
+    double sum_svc;
+    double sum_q1;
+    double sum_q2;
+    double sum_s1;
+    double sum_s2;
+    double sum_sys;
+    double sum_sys2;
+} Stats;
+
 typedef struct Shared {
     pthread_mutex_t mutex;
     pthread_cond_t cv;
@@ -39,6 +53,7 @@ typedef struct Shared {
     Args args;
     My402List Q1;
     My402List Q2;
+    Stats stats;
     int arrived_count;
     int tokens;
     int token_count;
@@ -62,6 +77,7 @@ void TimeSleepRemaining(const struct timeval *expected);
 void TimeFormatInterval(const struct timeval *diff, char *buf, size_t n);
 void TimePrintEvent(const struct timeval *t0, const struct timeval *t,
                     const char *msg);
+double TimeToSeconds(const struct timeval *diff);
 int TimeInterarrivalMs(double lambda);
 int TimeServiceMs(double mu);
 int TimeTokenIntervalUsec(double r);
@@ -69,6 +85,8 @@ int TimeTokenIntervalUsec(double r);
 const char *TokenWord(int n);
 int TryMoveHeadQ1ToQ2(Shared *s);
 int AllDone(Shared *s);
+
+void PrintStats(Shared *s, const struct timeval *t_end);
 
 void *Arrival(void *arg);
 void *Token(void *arg);

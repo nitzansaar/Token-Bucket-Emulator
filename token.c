@@ -48,6 +48,7 @@ void *Token(void *arg)
                      "token t%d arrives, token bucket now has %d %s",
                      id, s->tokens, TokenWord(s->tokens));
         } else {
+            s->stats.dropped_tokens++;
             snprintf(msg, sizeof(msg), "token t%d arrives, dropped", id);
         }
         TimePrintEvent(&s->t0, &t, msg);

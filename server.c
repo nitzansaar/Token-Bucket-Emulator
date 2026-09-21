@@ -67,6 +67,25 @@ void *Server(void *arg)
                  "p%d departs from S%d, service time = %s, time in system = %s",
                  p->id, id, svc_str, sys_str);
         TimePrintEvent(&s->t0, &p->t_depart, msg);
+
+        {
+            struct timeval q1_time;
+            double svc = TimeToSeconds(&svc_time);
+            double sys = TimeToSeconds(&sys_time);
+
+            TimeElapsed(&p->t_enter_q1, &p->t_leave_q1, &q1_time);
+            s->stats.completed++;
+            s->stats.sum_svc += svc;
+            s->stats.sum_q1 += TimeToSeconds(&q1_time);
+            s->stats.sum_q2 += TimeToSeconds(&q2_time);
+            if (id == 1) {
+                s->stats.sum_s1 += svc;
+            } else {
+                s->stats.sum_s2 += svc;
+            }
+            s->stats.sum_sys += sys;
+            s->stats.sum_sys2 += sys * sys;
+        }
         free(p);
         if (AllDone(s)) {
             pthread_cond_broadcast(&s->cv);

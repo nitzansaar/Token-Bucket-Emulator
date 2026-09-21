@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "warmup2.h"
 #include "my402list.h"
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
     shared.tokens = 0;
     shared.token_count = 0;
     shared.no_more_packets = 0;
+    memset(&shared.stats, 0, sizeof(shared.stats));
     My402ListInit(&shared.Q1);
     My402ListInit(&shared.Q2);
     if (pthread_mutex_init(&shared.mutex, NULL) != 0) {
@@ -114,6 +116,7 @@ int main(int argc, char **argv)
     pthread_mutex_lock(&shared.mutex);
     TimeNow(&t_end);
     TimePrintEvent(&shared.t0, &t_end, "emulation ends");
+    PrintStats(&shared, &t_end);
     pthread_mutex_unlock(&shared.mutex);
 
     pthread_cond_destroy(&shared.cv);

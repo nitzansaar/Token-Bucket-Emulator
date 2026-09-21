@@ -32,7 +32,9 @@ void *Arrival(void *arg)
 
         TimeElapsed(&last_actual, &t_arrive, &ia);
         TimeFormatInterval(&ia, ia_str, sizeof(ia_str));
+        s->stats.sum_ia += TimeToSeconds(&ia);
         if (tokens > s->args.B) {
+            s->stats.dropped_packets++;
             snprintf(msg, sizeof(msg),
                      "p%d arrives, needs %d token%s, inter-arrival time = %s, dropped",
                      k, tokens, (tokens == 1) ? "" : "s", ia_str);

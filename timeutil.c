@@ -54,6 +54,17 @@ void TimeSleepRemaining(const struct timeval *expected)
     (void)select(0, NULL, NULL, NULL, &rem);
 }
 
+double TimeToSeconds(const struct timeval *diff)
+{
+    long total_usec;
+
+    total_usec = (long)diff->tv_sec * 1000000L + (long)diff->tv_usec;
+    if (total_usec < 0) {
+        total_usec = 0;
+    }
+    return (double)total_usec / 1000000.0;
+}
+
 void TimeFormatInterval(const struct timeval *diff, char *buf, size_t n)
 {
     long total_usec;
