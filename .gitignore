@@ -1,0 +1,24 @@
+# Compiled objects and debug leftovers
+*.o
+*.gch
+core
+*.dSYM/
+
+# Executable
+warmup2
+
+# Submission archive
+warmup2.tar.gz
+
+# Grading data (large) and convenience scripts
+w2data.tar.gz
+w2data/
+section-*.sh
+section-*.out
+analyze-trace.txt
+
+# Private course spec (do not commit)
+*.pdf
+
+# macOS
+.DS_Store
