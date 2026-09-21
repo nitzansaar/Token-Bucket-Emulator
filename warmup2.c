@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,9 +61,11 @@ int main(int argc, char **argv)
     pthread_t token_thr;
     pthread_t s1_thr;
     pthread_t s2_thr;
+    pthread_t sigint_thr;
     ServerArg s1_arg;
     ServerArg s2_arg;
     struct timeval t_end;
+    sigset_t set;
 
     ParseArgs(argc, argv, &shared.args);
     shared.tsfp = NULL;
@@ -70,6 +73,7 @@ int main(int argc, char **argv)
     shared.tokens = 0;
     shared.token_count = 0;
     shared.no_more_packets = 0;
+    shared.shutdown = 0;
     memset(&shared.stats, 0, sizeof(shared.stats));
     My402ListInit(&shared.Q1);
     My402ListInit(&shared.Q2);
@@ -92,6 +96,18 @@ int main(int argc, char **argv)
     TimePrintEvent(&shared.t0, &shared.t0, "emulation begins");
     pthread_mutex_unlock(&shared.mutex);
 
+    signal(SIGINT, SIG_DFL);
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+        perror("pthread_sigmask");
+        exit(1);
+    }
+
+    if (pthread_create(&sigint_thr, NULL, CatchSigint, &shared) != 0) {
+        perror("pthread_create");
+        exit(1);
+    }
     if (pthread_create(&arrival_thr, NULL, Arrival, &shared) != 0) {
         perror("pthread_create");
         exit(1);
@@ -116,6 +132,8 @@ int main(int argc, char **argv)
     pthread_join(token_thr, NULL);
     pthread_join(s1_thr, NULL);
     pthread_join(s2_thr, NULL);
+    pthread_cancel(sigint_thr);
+    pthread_join(sigint_thr, NULL);
 
     pthread_mutex_lock(&shared.mutex);
     TimeNow(&t_end);

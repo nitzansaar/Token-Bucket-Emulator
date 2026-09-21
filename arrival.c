@@ -118,6 +118,13 @@ void *Arrival(void *arg)
         char ia_str[32];
         char msg[160];
 
+        pthread_mutex_lock(&s->mutex);
+        if (s->shutdown) {
+            pthread_mutex_unlock(&s->mutex);
+            goto cleanup;
+        }
+        pthread_mutex_unlock(&s->mutex);
+
         if (s->args.use_tsfile) {
             TsfileReadPacket(s->tsfp, &interval_ms, &tokens, &service_ms);
         }
@@ -126,6 +133,10 @@ void *Arrival(void *arg)
         TimeSleepRemaining(&expected);
 
         pthread_mutex_lock(&s->mutex);
+        if (s->shutdown) {
+            pthread_mutex_unlock(&s->mutex);
+            goto cleanup;
+        }
         TimeNow(&t_arrive);
         s->arrived_count++;
 
@@ -171,6 +182,7 @@ void *Arrival(void *arg)
         pthread_mutex_unlock(&s->mutex);
     }
 
+cleanup:
     pthread_mutex_lock(&s->mutex);
     s->no_more_packets = 1;
     pthread_cond_broadcast(&s->cv);

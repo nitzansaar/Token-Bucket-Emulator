@@ -6,7 +6,7 @@
 
 static int TokenShouldStop(Shared *s)
 {
-    return (s->no_more_packets && My402ListEmpty(&s->Q1));
+    return (s->shutdown || (s->no_more_packets && My402ListEmpty(&s->Q1)));
 }
 
 void *Token(void *arg)

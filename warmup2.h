@@ -58,6 +58,7 @@ typedef struct Shared {
     int tokens;
     int token_count;
     int no_more_packets;
+    int shutdown;
     FILE *tsfp;
 } Shared;
 
@@ -95,5 +96,6 @@ void TsfileReadPacket(FILE *fp, int *ia_ms, int *tokens, int *service_ms);
 void *Arrival(void *arg);
 void *Token(void *arg);
 void *Server(void *arg);
+void *CatchSigint(void *arg);
 
 #endif /* _WARMUP2_H_ */
