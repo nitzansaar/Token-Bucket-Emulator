@@ -3,6 +3,47 @@
 #include <stdlib.h>
 
 #include "warmup2.h"
+#include "my402list.h"
+
+const char *TokenWord(int n)
+{
+    return (n == 1 || n == 0) ? "token" : "tokens";
+}
+
+int TryMoveHeadQ1ToQ2(Shared *s)
+{
+    My402ListElem *elem;
+    Packet *p;
+    struct timeval q1_time;
+    char q1_str[32];
+    char msg[160];
+
+    if (My402ListEmpty(&s->Q1)) {
+        return 0;
+    }
+    elem = My402ListFirst(&s->Q1);
+    p = (Packet *)elem->obj;
+    if (s->tokens < p->tokens) {
+        return 0;
+    }
+
+    s->tokens -= p->tokens;
+    TimeNow(&p->t_leave_q1);
+    TimeElapsed(&p->t_enter_q1, &p->t_leave_q1, &q1_time);
+    TimeFormatInterval(&q1_time, q1_str, sizeof(q1_str));
+    snprintf(msg, sizeof(msg),
+             "p%d leaves Q1, time in Q1 = %s, token bucket now has %d %s",
+             p->id, q1_str, s->tokens, TokenWord(s->tokens));
+    TimePrintEvent(&s->t0, &p->t_leave_q1, msg);
+
+    My402ListUnlink(&s->Q1, elem);
+    My402ListAppend(&s->Q2, p);
+    TimeNow(&p->t_enter_q2);
+    snprintf(msg, sizeof(msg), "p%d enters Q2", p->id);
+    TimePrintEvent(&s->t0, &p->t_enter_q2, msg);
+    pthread_cond_broadcast(&s->cv);
+    return 1;
+}
 
 int main(int argc, char **argv)
 {
@@ -18,6 +59,8 @@ int main(int argc, char **argv)
     shared.tokens = 0;
     shared.token_count = 0;
     shared.no_more_packets = 0;
+    My402ListInit(&shared.Q1);
+    My402ListInit(&shared.Q2);
     if (pthread_mutex_init(&shared.mutex, NULL) != 0) {
         perror("pthread_mutex_init");
         exit(1);
@@ -44,6 +87,13 @@ int main(int argc, char **argv)
     pthread_join(token_thr, NULL);
 
     pthread_mutex_lock(&shared.mutex);
+    /* M5-will-replace */
+    while (!My402ListEmpty(&shared.Q2)) {
+        My402ListElem *elem = My402ListFirst(&shared.Q2);
+        Packet *p = (Packet *)elem->obj;
+        My402ListUnlink(&shared.Q2, elem);
+        free(p);
+    }
     TimeNow(&t_end);
     TimePrintEvent(&shared.t0, &t_end, "emulation ends");
     pthread_mutex_unlock(&shared.mutex);

@@ -4,9 +4,9 @@
 
 #include "warmup2.h"
 
-static const char *TokenWord(int n)
+static int TokenShouldStop(Shared *s)
 {
-    return (n == 1 || n == 0) ? "token" : "tokens";
+    return (s->no_more_packets && My402ListEmpty(&s->Q1));
 }
 
 void *Token(void *arg)
@@ -24,7 +24,7 @@ void *Token(void *arg)
         char msg[160];
 
         pthread_mutex_lock(&s->mutex);
-        if (s->no_more_packets) {
+        if (TokenShouldStop(s)) {
             pthread_mutex_unlock(&s->mutex);
             return NULL;
         }
@@ -34,7 +34,7 @@ void *Token(void *arg)
         TimeSleepRemaining(&expected);
 
         pthread_mutex_lock(&s->mutex);
-        if (s->no_more_packets) {
+        if (TokenShouldStop(s)) {
             pthread_mutex_unlock(&s->mutex);
             return NULL;
         }
@@ -52,6 +52,8 @@ void *Token(void *arg)
         }
         TimePrintEvent(&s->t0, &t, msg);
         last_actual = t;
+
+        TryMoveHeadQ1ToQ2(s);
         pthread_mutex_unlock(&s->mutex);
     }
 }

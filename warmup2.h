@@ -6,6 +6,7 @@
 #include <sys/time.h>
 
 #include "cs402.h"
+#include "my402list.h"
 
 typedef struct tagArgs {
     double lambda;
@@ -23,6 +24,9 @@ typedef struct Packet {
     int tokens;
     int service_ms;
     struct timeval t_arrive;
+    struct timeval t_enter_q1;
+    struct timeval t_leave_q1;
+    struct timeval t_enter_q2;
 } Packet;
 
 typedef struct Shared {
@@ -30,6 +34,8 @@ typedef struct Shared {
     pthread_cond_t cv;
     struct timeval t0;
     Args args;
+    My402List Q1;
+    My402List Q2;
     int arrived_count;
     int tokens;
     int token_count;
@@ -51,6 +57,9 @@ void TimePrintEvent(const struct timeval *t0, const struct timeval *t,
 int TimeInterarrivalMs(double lambda);
 int TimeServiceMs(double mu);
 int TimeTokenIntervalUsec(double r);
+
+const char *TokenWord(int n);
+int TryMoveHeadQ1ToQ2(Shared *s);
 
 void *Arrival(void *arg);
 void *Token(void *arg);

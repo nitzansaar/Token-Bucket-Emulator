@@ -17,8 +17,8 @@ void *Arrival(void *arg)
     last_actual = s->t0;
 
     for (k = 1; k <= n; k++) {
-        Packet pkt;
         struct timeval expected;
+        struct timeval t_arrive;
         struct timeval ia;
         char ia_str[32];
         char msg[160];
@@ -27,25 +27,46 @@ void *Arrival(void *arg)
         TimeSleepRemaining(&expected);
 
         pthread_mutex_lock(&s->mutex);
-        TimeNow(&pkt.t_arrive);
-        pkt.id = k;
-        pkt.tokens = tokens;
-        pkt.service_ms = service_ms;
+        TimeNow(&t_arrive);
         s->arrived_count++;
 
-        TimeElapsed(&last_actual, &pkt.t_arrive, &ia);
+        TimeElapsed(&last_actual, &t_arrive, &ia);
         TimeFormatInterval(&ia, ia_str, sizeof(ia_str));
         if (tokens > s->args.B) {
             snprintf(msg, sizeof(msg),
                      "p%d arrives, needs %d token%s, inter-arrival time = %s, dropped",
                      k, tokens, (tokens == 1) ? "" : "s", ia_str);
+            TimePrintEvent(&s->t0, &t_arrive, msg);
         } else {
+            Packet *pkt;
+            int q1_was_empty;
+
             snprintf(msg, sizeof(msg),
                      "p%d arrives, needs %d token%s, inter-arrival time = %s",
                      k, tokens, (tokens == 1) ? "" : "s", ia_str);
+            TimePrintEvent(&s->t0, &t_arrive, msg);
+
+            pkt = (Packet *)malloc(sizeof(Packet));
+            if (pkt == NULL) {
+                perror("malloc");
+                exit(1);
+            }
+            pkt->id = k;
+            pkt->tokens = tokens;
+            pkt->service_ms = service_ms;
+            pkt->t_arrive = t_arrive;
+
+            q1_was_empty = My402ListEmpty(&s->Q1);
+            My402ListAppend(&s->Q1, pkt);
+            TimeNow(&pkt->t_enter_q1);
+            snprintf(msg, sizeof(msg), "p%d enters Q1", k);
+            TimePrintEvent(&s->t0, &pkt->t_enter_q1, msg);
+
+            if (q1_was_empty) {
+                TryMoveHeadQ1ToQ2(s);
+            }
         }
-        TimePrintEvent(&s->t0, &pkt.t_arrive, msg);
-        last_actual = pkt.t_arrive;
+        last_actual = t_arrive;
         pthread_mutex_unlock(&s->mutex);
     }
 
