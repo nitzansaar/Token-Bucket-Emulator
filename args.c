@@ -72,8 +72,8 @@ static int ParsePositiveInt(const char *flag, const char *s)
 void PrintParams(const Args *args)
 {
     printf("Emulation Parameters:\n");
+    printf("    number to arrive = %d\n", args->n);
     if (!args->use_tsfile) {
-        printf("    number to arrive = %d\n", args->n);
         printf("    lambda = %.6g\n", args->lambda);
         printf("    mu = %.6g\n", args->mu);
     }

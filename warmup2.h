@@ -58,6 +58,7 @@ typedef struct Shared {
     int tokens;
     int token_count;
     int no_more_packets;
+    FILE *tsfp;
 } Shared;
 
 typedef struct ServerArg {
@@ -87,6 +88,9 @@ int TryMoveHeadQ1ToQ2(Shared *s);
 int AllDone(Shared *s);
 
 void PrintStats(Shared *s, const struct timeval *t_end);
+
+void TsfileOpenAndReadN(Shared *s);
+void TsfileReadPacket(FILE *fp, int *ia_ms, int *tokens, int *service_ms);
 
 void *Arrival(void *arg);
 void *Token(void *arg);

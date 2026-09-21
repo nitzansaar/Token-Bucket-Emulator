@@ -65,8 +65,7 @@ int main(int argc, char **argv)
     struct timeval t_end;
 
     ParseArgs(argc, argv, &shared.args);
-    PrintParams(&shared.args);
-
+    shared.tsfp = NULL;
     shared.arrived_count = 0;
     shared.tokens = 0;
     shared.token_count = 0;
@@ -82,6 +81,11 @@ int main(int argc, char **argv)
         perror("pthread_cond_init");
         exit(1);
     }
+
+    if (shared.args.use_tsfile) {
+        TsfileOpenAndReadN(&shared);
+    }
+    PrintParams(&shared.args);
 
     pthread_mutex_lock(&shared.mutex);
     TimeNow(&shared.t0);

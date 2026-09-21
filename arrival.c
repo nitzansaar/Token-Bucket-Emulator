@@ -1,8 +1,103 @@
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "warmup2.h"
+
+#define TS_LINE_MAX 1024
+#define INT_MAX_ALLOWED 2147483647
+
+static void DieTsfile(const char *msg)
+{
+    fprintf(stderr, "%s\n", msg);
+    exit(1);
+}
+
+static void ReadTsLine(FILE *fp, char *buf)
+{
+    size_t len;
+
+    if (fgets(buf, TS_LINE_MAX + 1, fp) == NULL) {
+        DieTsfile("malformed tsfile: unexpected end of file");
+    }
+    len = strlen(buf);
+    if (len == (size_t)TS_LINE_MAX && buf[TS_LINE_MAX - 1] != '\n') {
+        DieTsfile("malformed tsfile: line too long");
+    }
+    if (buf[0] == ' ' || buf[0] == '\t') {
+        DieTsfile("malformed tsfile: leading whitespace");
+    }
+    if (len > 0 && buf[len - 1] == '\n') {
+        buf[--len] = '\0';
+    }
+    if (len > 0 && (buf[len - 1] == ' ' || buf[len - 1] == '\t')) {
+        DieTsfile("malformed tsfile: trailing whitespace");
+    }
+}
+
+static int ParsePositiveIntToken(char **pp)
+{
+    char *s = *pp;
+    char *end = NULL;
+    long v;
+
+    errno = 0;
+    v = strtol(s, &end, 10);
+    if (end == s || errno == ERANGE || v <= 0 || v > INT_MAX_ALLOWED) {
+        DieTsfile("malformed tsfile: invalid integer");
+    }
+    *pp = end;
+    return (int)v;
+}
+
+static void SkipSep(char **pp)
+{
+    if (**pp != ' ' && **pp != '\t') {
+        DieTsfile("malformed tsfile: missing field separator");
+    }
+    while (**pp == ' ' || **pp == '\t') {
+        (*pp)++;
+    }
+}
+
+void TsfileOpenAndReadN(Shared *s)
+{
+    char buf[TS_LINE_MAX + 1];
+    char *p;
+    int n;
+
+    s->tsfp = fopen(s->args.tsfile, "r");
+    if (s->tsfp == NULL) {
+        fprintf(stderr, "cannot open tsfile: %s\n", s->args.tsfile);
+        exit(1);
+    }
+    ReadTsLine(s->tsfp, buf);
+    p = buf;
+    n = ParsePositiveIntToken(&p);
+    if (*p != '\0') {
+        DieTsfile("malformed tsfile: extra junk on first line");
+    }
+    s->args.n = n;
+}
+
+void TsfileReadPacket(FILE *fp, int *ia_ms, int *tokens, int *service_ms)
+{
+    char buf[TS_LINE_MAX + 1];
+    char *p;
+
+    ReadTsLine(fp, buf);
+    p = buf;
+    *ia_ms = ParsePositiveIntToken(&p);
+    SkipSep(&p);
+    *tokens = ParsePositiveIntToken(&p);
+    SkipSep(&p);
+    *service_ms = ParsePositiveIntToken(&p);
+    if (*p != '\0') {
+        DieTsfile("malformed tsfile: extra junk on packet line");
+    }
+}
 
 void *Arrival(void *arg)
 {
@@ -22,6 +117,10 @@ void *Arrival(void *arg)
         struct timeval ia;
         char ia_str[32];
         char msg[160];
+
+        if (s->args.use_tsfile) {
+            TsfileReadPacket(s->tsfp, &interval_ms, &tokens, &service_ms);
+        }
 
         TimeAddMs(&last_actual, interval_ms, &expected);
         TimeSleepRemaining(&expected);
@@ -75,6 +174,10 @@ void *Arrival(void *arg)
     pthread_mutex_lock(&s->mutex);
     s->no_more_packets = 1;
     pthread_cond_broadcast(&s->cv);
+    if (s->tsfp != NULL) {
+        fclose(s->tsfp);
+        s->tsfp = NULL;
+    }
     pthread_mutex_unlock(&s->mutex);
 
     return NULL;
