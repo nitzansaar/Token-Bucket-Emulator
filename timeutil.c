@@ -6,6 +6,7 @@
 #include "warmup2.h"
 
 #define MAX_INTERVAL_MS 10000
+#define MAX_INTERVAL_USEC 10000000
 
 void TimeNow(struct timeval *t)
 {
@@ -27,6 +28,15 @@ void TimeAddMs(const struct timeval *base, int ms, struct timeval *out)
 
     delta.tv_sec = ms / 1000;
     delta.tv_usec = (ms % 1000) * 1000;
+    timeradd(base, &delta, out);
+}
+
+void TimeAddUsec(const struct timeval *base, int usec, struct timeval *out)
+{
+    struct timeval delta;
+
+    delta.tv_sec = usec / 1000000;
+    delta.tv_usec = usec % 1000000;
     timeradd(base, &delta, out);
 }
 
@@ -93,4 +103,15 @@ int TimeServiceMs(double mu)
         return MAX_INTERVAL_MS;
     }
     return round(sec * 1000.0);
+}
+
+int TimeTokenIntervalUsec(double r)
+{
+    double sec;
+
+    sec = 1.0 / r;
+    if (sec > 10.0) {
+        return MAX_INTERVAL_USEC;
+    }
+    return round(sec * 1000000.0);
 }

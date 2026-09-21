@@ -49,5 +49,10 @@ void *Arrival(void *arg)
         pthread_mutex_unlock(&s->mutex);
     }
 
+    pthread_mutex_lock(&s->mutex);
+    s->no_more_packets = 1;
+    pthread_cond_broadcast(&s->cv);
+    pthread_mutex_unlock(&s->mutex);
+
     return NULL;
 }

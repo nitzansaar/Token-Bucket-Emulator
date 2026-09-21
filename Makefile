@@ -5,7 +5,7 @@ CC = gcc
 CFLAGS = -g -Wall
 LDFLAGS = -lpthread
 
-OBJS = warmup2.o args.o timeutil.o arrival.o my402list.o
+OBJS = warmup2.o args.o timeutil.o arrival.o token.o my402list.o
 
 warmup2: $(OBJS)
 	$(CC) -o warmup2 -g $(OBJS) $(LDFLAGS)
@@ -21,6 +21,9 @@ timeutil.o: timeutil.c warmup2.h
 
 arrival.o: arrival.c warmup2.h cs402.h
 	$(CC) $(CFLAGS) -c arrival.c
+
+token.o: token.c warmup2.h cs402.h
+	$(CC) $(CFLAGS) -c token.c
 
 my402list.o: my402list.c my402list.h cs402.h
 	$(CC) $(CFLAGS) -c my402list.c
