@@ -57,8 +57,6 @@ int AllDone(Shared *s)
 int main(int argc, char **argv)
 {
     Shared shared;
-    pthread_t arrival_thr;
-    pthread_t token_thr;
     pthread_t s1_thr;
     pthread_t s2_thr;
     pthread_t sigint_thr;
@@ -104,15 +102,11 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    if (pthread_create(&sigint_thr, NULL, CatchSigint, &shared) != 0) {
+    if (pthread_create(&shared.token_thr, NULL, Token, &shared) != 0) {
         perror("pthread_create");
         exit(1);
     }
-    if (pthread_create(&arrival_thr, NULL, Arrival, &shared) != 0) {
-        perror("pthread_create");
-        exit(1);
-    }
-    if (pthread_create(&token_thr, NULL, Token, &shared) != 0) {
+    if (pthread_create(&shared.arrival_thr, NULL, Arrival, &shared) != 0) {
         perror("pthread_create");
         exit(1);
     }
@@ -128,12 +122,21 @@ int main(int argc, char **argv)
         perror("pthread_create");
         exit(1);
     }
-    pthread_join(arrival_thr, NULL);
-    pthread_join(token_thr, NULL);
+    if (pthread_create(&sigint_thr, NULL, CatchSigint, &shared) != 0) {
+        perror("pthread_create");
+        exit(1);
+    }
+    pthread_join(shared.arrival_thr, NULL);
+    pthread_join(shared.token_thr, NULL);
     pthread_join(s1_thr, NULL);
     pthread_join(s2_thr, NULL);
     pthread_cancel(sigint_thr);
     pthread_join(sigint_thr, NULL);
+    if (shared.tsfp != NULL) {
+        /* arrival thread was cancelled before it could close the tsfile */
+        fclose(shared.tsfp);
+        shared.tsfp = NULL;
+    }
 
     pthread_mutex_lock(&shared.mutex);
     TimeNow(&t_end);

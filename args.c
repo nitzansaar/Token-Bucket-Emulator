@@ -84,6 +84,7 @@ void PrintParams(const Args *args)
     } else {
         printf("    tsfile = %s\n", args->tsfile);
     }
+    printf("\n");
 }
 
 int ParseArgs(int argc, char **argv, Args *args)

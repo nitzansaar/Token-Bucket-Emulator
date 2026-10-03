@@ -60,6 +60,8 @@ typedef struct Shared {
     int no_more_packets;
     int shutdown;
     FILE *tsfp;
+    pthread_t arrival_thr;
+    pthread_t token_thr;
 } Shared;
 
 typedef struct ServerArg {

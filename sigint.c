@@ -39,6 +39,8 @@ void *CatchSigint(void *arg)
                    "SIGINT caught, no new packets or tokens will be allowed");
     s->shutdown = 1;
     s->no_more_packets = 1;
+    pthread_cancel(s->arrival_thr);
+    pthread_cancel(s->token_thr);
     DrainQueue(s, &s->Q1, 1);
     DrainQueue(s, &s->Q2, 2);
     pthread_cond_broadcast(&s->cv);

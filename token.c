@@ -16,6 +16,8 @@ void *Token(void *arg)
     struct timeval last_actual;
     int id = 0;
 
+    /* only cancellable while sleeping, never while holding the mutex */
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     last_actual = s->t0;
 
     for (;;) {
@@ -31,7 +33,9 @@ void *Token(void *arg)
         pthread_mutex_unlock(&s->mutex);
 
         TimeAddUsec(&last_actual, interval_usec, &expected);
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         TimeSleepRemaining(&expected);
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
         pthread_mutex_lock(&s->mutex);
         if (TokenShouldStop(s)) {

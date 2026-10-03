@@ -109,6 +109,8 @@ void *Arrival(void *arg)
     struct timeval last_actual;
     int k;
 
+    /* only cancellable while sleeping, never while holding the mutex */
+    pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     last_actual = s->t0;
 
     for (k = 1; k <= n; k++) {
@@ -130,7 +132,9 @@ void *Arrival(void *arg)
         }
 
         TimeAddMs(&last_actual, interval_ms, &expected);
+        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
         TimeSleepRemaining(&expected);
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
 
         pthread_mutex_lock(&s->mutex);
         if (s->shutdown) {
@@ -185,6 +189,10 @@ void *Arrival(void *arg)
 cleanup:
     pthread_mutex_lock(&s->mutex);
     s->no_more_packets = 1;
+    if (My402ListEmpty(&s->Q1)) {
+        /* no packet can ever need another token; wake token thread now */
+        pthread_cancel(s->token_thr);
+    }
     pthread_cond_broadcast(&s->cv);
     if (s->tsfp != NULL) {
         fclose(s->tsfp);

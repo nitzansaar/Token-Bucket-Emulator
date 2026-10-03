@@ -24,7 +24,7 @@ void PrintStats(Shared *s, const struct timeval *t_end)
     TimeElapsed(&s->t0, t_end, &total);
     T = TimeToSeconds(&total);
 
-    printf("Statistics:\n\n");
+    printf("\nStatistics:\n\n");
 
     PrintRealOrNA("average packet inter-arrival time",
                   arrived > 0, (arrived > 0) ? s->stats.sum_ia / arrived : 0.0,
